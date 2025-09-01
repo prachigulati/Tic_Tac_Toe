@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic Tac Toe - Modern Game</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { font-family: 'Inter', sans-serif; margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e4e9f1 100%);
+    overflow:hidden;
+    position:relative;
+  }
+
+  .decorative-circle {
+    position:absolute;
+    border-radius:50%;
+    opacity:0.15;
+    z-index:0;
+  }
+
+  .cell-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+  .cell-active { transform: scale(0.95); }
+
+  @keyframes slideUp { from { opacity:0; transform: translateY(20px);} to {opacity:1; transform: translateY(0);} }
+  @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity:1;} 50% { transform: scale(1.05); opacity:0.9;} }
+
+  .animate-slideUp { animation: slideUp 0.5s ease-out; }
+  .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+  .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
+
+  .winning-cell { background: #88c999 !important; color: white !important; animation: pulse 0.6s ease-in-out 3; }
+
+  .gradient-bg { background: linear-gradient(135deg, #6c63ff 0%, #ff7f50 100%); }
+  .gradient-text { background: linear-gradient(135deg, #6c63ff 0%, #ff7f50 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .glass-effect { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border: 1px solid rgba(200,200,200,0.3); }
+
+  #board button { transition: all 0.3s ease; border-radius: 1rem; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+  #board button:hover { cursor:pointer; }
+
+  /* Score Display */
+  #scoreDisplay {
+    display:flex;
+    justify-content:space-between;
+    width:100%;
+    max-width:600px;
+    margin-top:1.5rem;
+    padding:0 1rem;
+    z-index:10;
+    margin-top: -80px;
+    height: 80px;
+  }
+
+  .score-card {
+    background:#ffffff;
+    border-radius:1rem;
+    /* padding:1rem 1.5rem; */
+    margin-top: 18px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.05);
+    text-align:center;
+    min-width:120px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+  }
+
+  .score-card.active-player {
+    border: 2px solid #6c63ff;
+    box-shadow: 0 0 15px rgba(108,99,255,0.2);
+    transform: scale(1.05);
+  }
+
+  .score-name { font-weight:600; font-size:1rem; color:#4b5563; }
+  .score-value { font-weight:700; font-size:1.5rem; color:#6c63ff; }
+
+  /* Modals */
+  .modal-backdrop { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+
+  #namesForm button {
+    background: linear-gradient(135deg, #6c63ff 0%, #ff7f50 100%);
+    color:white;
+    font-weight:600;
+  }
+  #namesForm button:hover { opacity:0.9; }
+</style>
+</head>
+<body>
+
+<!-- Decorative Circles -->
+<div class="decorative-circle" style="width:200px;height:200px;top:-50px;left:-50px;background:#6c63ff;"></div>
+<div class="decorative-circle" style="width:300px;height:300px;bottom:-100px;right:-100px;background:#ff7f50;"></div>
+
+<!-- Header -->
+<header class="text-center mb-6 animate-slideUp" style="z-index:10;">
+  <h1 class="text-4xl md:text-5xl font-bold mb-2 gradient-text">Tic Tac Toe</h1>
+  <p class="text-gray-600 text-base md:text-lg">Challenge yourself against AI or play with a friend</p>
+</header>
+
+<!-- Game Board -->
+<div class="glass-effect rounded-2xl shadow-2xl p-4 md:p-6 z-10">
+  <div id="board" class="grid grid-cols-3 gap-2 md:gap-3"></div>
+</div>
+
+<!-- Controls -->
+<div class="flex flex-wrap gap-2 md:gap-3 justify-center mt-4 z-10">
+  <button id="resetBtn" class="px-4 py-2 md:px-6 md:py-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold text-gray-700 cell-hover">🔄 Reset</button>
+  <button id="aiBtn" class="px-4 py-2 md:px-6 md:py-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold text-gray-700 cell-hover">🤖 Play vs AI</button>
+  <button id="pvpBtn" class="px-4 py-2 md:px-6 md:py-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold text-gray-700 cell-hover">👥 2 Players</button>
+</div>
+
+<!-- Status -->
+<div class="glass-effect rounded-xl p-3 md:p-4 shadow-lg mt-4 z-10 inline-block">
+  <p id="status" class="text-base md:text-lg font-bold text-gray-800">Choose a game mode to start!</p>
+</div>
+
+<!-- Score Display -->
+<div id="scoreDisplay" class="hidden">
+  <div class="score-card active-player">
+    <p class="score-name" id="playerXName">Player X</p>
+    <p class="score-value" id="scoreX">0</p>
+  </div>
+  <div class="score-card">
+    <p class="score-name" id="playerOName">Player O</p>
+    <p class="score-value" id="scoreO">0</p>
+  </div>
+</div>
+
+<!-- Difficulty Modal -->
+<div id="difficultyModal" class="fixed inset-0 z-50 hidden">
+  <div class="modal-backdrop absolute inset-0"></div>
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="glass-effect rounded-2xl p-6 max-w-md w-full animate-slideUp">
+      <h2 class="text-2xl font-bold gradient-text mb-4">Choose AI Difficulty</h2>
+      <div class="space-y-3">
+        <button onclick="selectDifficulty('easy')" class="w-full p-4 bg-green-100 hover:bg-green-200 rounded-xl transition-all text-left">
+          <p class="font-semibold text-green-700">🌱 Easy</p>
+          <p class="text-sm text-gray-600">Random moves</p>
+        </button>
+        <button onclick="selectDifficulty('medium')" class="w-full p-4 bg-yellow-100 hover:bg-yellow-200 rounded-xl transition-all text-left">
+          <p class="font-semibold text-yellow-700">⚡ Medium</p>
+          <p class="text-sm text-gray-600">Strategic sometimes</p>
+        </button>
+        <button onclick="selectDifficulty('hard')" class="w-full p-4 bg-red-100 hover:bg-red-200 rounded-xl transition-all text-left">
+          <p class="font-semibold text-red-700">🔥 Hard</p>
+          <p class="text-sm text-gray-600">Perfect AI</p>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Names Modal -->
+<div id="namesModal" class="fixed inset-0 z-50 hidden">
+  <div class="modal-backdrop absolute inset-0"></div>
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="glass-effect rounded-2xl p-6 max-w-md w-full animate-slideUp">
+      <h2 class="text-2xl font-bold gradient-text mb-4">Enter Player Names</h2>
+      <form id="namesForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Player X</label>
+          <input type="text" id="inputPlayerX" placeholder="Player 1" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Player O</label>
+          <input type="text" id="inputPlayerO" placeholder="Player 2" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500">
+        </div>
+        <button type="submit" class="w-full py-3 gradient-bg text-white font-semibold rounded-lg hover:opacity-90 transition-opacity">
+          Start Game
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let board = Array(9).fill('');
+let currentPlayer = 'X';
+let gameOver = false;
+let mode = null;
+let aiLevel = 'hard';
+let players = { X: 'Player X', O: 'Player O' };
+let scores = { X: 0, O: 0 };
+
+const WIN_PATTERNS = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+function createBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for(let i=0;i<9;i++){
+    const cell = document.createElement('button');
+    cell.className = `
+      w-20 h-20 md:w-24 md:h-24 
+      bg-white rounded-xl shadow-md
+      text-3xl md:text-4xl font-bold
+      transition-all duration-300
+      hover:shadow-lg cell-hover
+      ${board[i]==='X'?'text-purple-600':board[i]==='O'?'text-pink-600':'text-gray-400'}
+      ${board[i]? '' : 'hover:bg-gray-50'}
+    `;
+    cell.textContent = board[i];
+    cell.onclick = ()=>handleClick(i);
+    cell.disabled = gameOver || board[i]!=='' || !mode;
+    boardEl.appendChild(cell);
+  }
+}
+
+function handleClick(index){
+  if(board[index] || gameOver || !mode) return;
+
+  board[index] = currentPlayer;
+  createBoard();
+
+  const winPattern = checkWinner(board, currentPlayer);
+  if(winPattern){
+    highlightWinningCells(winPattern);
+    if(mode==='ai' && currentPlayer==='X') updateStatus("You win! 🎉");
+    else if(mode==='ai' && currentPlayer==='O') updateStatus("AI wins! 🎉");
+    else updateStatus(`${players[currentPlayer]} wins! 🎉`);
+    
+    scores[currentPlayer]++;
+    updateScoreDisplay();
+    gameOver=true;
+    return;
+  }
+
+  if(board.every(c=>c)){
+    updateStatus("It's a Draw! 🤝");
+    gameOver=true;
+    return;
+  }
+
+  currentPlayer = currentPlayer==='X'?'O':'X';
+  
+  if(mode==='ai' && currentPlayer==='O'){
+    updateStatus('AI is thinking...');
+    setTimeout(aiMove, 500);
+  } else {
+    updateStatus(mode==='ai' && currentPlayer==='X' ? "Your Turn" : `${players[currentPlayer]}'s Turn`);
+  }
+}
+
+function checkWinner(board,player){
+  for(const pattern of WIN_PATTERNS){
+    if(pattern.every(i=>board[i]===player)) return pattern;
+  }
+  return null;
+}
+
+function highlightWinningCells(pattern){
+  const cells = document.getElementById('board').children;
+  pattern.forEach(i=>cells[i].classList.add('winning-cell'));
+}
+
+function aiMove(){
+  const available = board.map((v,i)=>v===''?i:null).filter(v=>v!==null);
+  if(available.length===0) return;
+
+  let move;
+  if(aiLevel==='easy') move = available[Math.floor(Math.random()*available.length)];
+  else if(aiLevel==='medium') move = Math.random()<0.5 ? available[Math.floor(Math.random()*available.length)] : minimax(board,0,true).index;
+  else move = minimax(board,0,true).index;
+
+  board[move]='O';
+  createBoard();
+
+  const winPattern = checkWinner(board,'O');
+  if(winPattern){
+    highlightWinningCells(winPattern);
+    if(mode==='ai') updateStatus("AI wins! 🎉");
+    else updateStatus(`${players.O} wins! 🎉`);
+    
+    scores.O++;
+    updateScoreDisplay();
+    gameOver=true;
+    return;
+  }
+
+  if(board.every(c=>c)){ updateStatus("It's a Draw! 🤝"); gameOver=true; return; }
+
+  currentPlayer='X';
+  updateStatus(mode==='ai' ? "Your Turn" : `${players.X}'s Turn`);
+}
+
+function minimax(newBoard,depth,isMax){
+  const avail = newBoard.map((v,i)=>v===''?i:null).filter(v=>v!==null);
+  if(checkWinner(newBoard,'X')) return {score:-10+depth};
+  if(checkWinner(newBoard,'O')) return {score:10-depth};
+  if(avail.length===0) return {score:0};
+
+  let bestMove;
+  if(isMax){
+    let bestScore=-Infinity;
+    avail.forEach(i=>{
+      newBoard[i]='O';
+      const score = minimax([...newBoard],depth+1,false).score;
+      newBoard[i]='';
+      if(score>bestScore){ bestScore=score; bestMove=i; }
+    });
+    return {score:bestScore,index:bestMove};
+  } else {
+    let bestScore=Infinity;
+    avail.forEach(i=>{
+      newBoard[i]='X';
+      const score = minimax([...newBoard],depth+1,true).score;
+      newBoard[i]='';
+      if(score<bestScore){ bestScore=score; bestMove=i; }
+    });
+    return {score:bestScore,index:bestMove};
+  }
+}
+
+function resetGame(){
+  board=Array(9).fill('');
+  currentPlayer='X';
+  gameOver=false;
+  createBoard();
+  updateStatus(mode ? (mode==='ai' ? "Your Turn" : `${players.X}'s Turn`) : 'Choose a game mode to start!');
+  updateScoreDisplay();
+}
+
+function updateStatus(msg){
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = msg;
+  statusEl.classList.remove('animate-fadeIn');
+  void statusEl.offsetWidth;
+  statusEl.classList.add('animate-fadeIn');
+}
+
+function updateScoreDisplay(){
+  document.getElementById('scoreX').textContent = scores.X;
+  document.getElementById('scoreO').textContent = scores.O;
+  document.getElementById('playerXName').textContent = players.X;
+  document.getElementById('playerOName').textContent = players.O;
+
+  document.getElementById('playerXName').parentElement.classList.toggle('active-player', currentPlayer==='X');
+  document.getElementById('playerOName').parentElement.classList.toggle('active-player', currentPlayer==='O');
+}
+
+function selectDifficulty(level){
+  aiLevel = level;
+  players.X='You';
+  players.O=`AI (${level})`;
+  scores={X:0,O:0};
+  document.getElementById('difficultyModal').classList.add('hidden');
+  document.getElementById('scoreDisplay').classList.remove('hidden');
+  resetGame();
+}
+
+document.getElementById('resetBtn').addEventListener('click',resetGame);
+document.getElementById('aiBtn').addEventListener('click',()=>{mode='ai';document.getElementById('difficultyModal').classList.remove('hidden');});
+document.getElementById('pvpBtn').addEventListener('click',()=>{mode='pvp';document.getElementById('namesModal').classList.remove('hidden');});
+
+document.getElementById('namesForm').addEventListener('submit',(e)=>{
+  e.preventDefault();
+  players.X = document.getElementById('inputPlayerX').value || 'Player 1';
+  players.O = document.getElementById('inputPlayerO').value || 'Player 2';
+  scores={X:0,O:0};
+  document.getElementById('namesModal').classList.add('hidden');
+  document.getElementById('scoreDisplay').classList.remove('hidden');
+  resetGame();
+});
+
+document.getElementById('difficultyModal').addEventListener('click',(e)=>{
+  if(e.target.id==='difficultyModal') document.getElementById('difficultyModal').classList.add('hidden');
+});
+
+document.getElementById('namesModal').addEventListener('click',(e)=>{
+  if(e.target.id==='namesModal') document.getElementById('namesModal').classList.add('hidden');
+});
+
+createBoard();
+</script>
+
+
+
+</body>
+</html>
