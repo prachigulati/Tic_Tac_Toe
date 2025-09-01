@@ -6,6 +6,7 @@
 <title>Tic Tac Toe - Modern Game</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
   * { font-family: 'Inter', sans-serif; margin:0; padding:0; box-sizing:border-box; }
 
@@ -16,8 +17,9 @@
     align-items:center;
     justify-content:center;
     background: linear-gradient(135deg, #f0f4f8 0%, #e4e9f1 100%);
-    overflow:hidden;
+    overflow-x:hidden;
     position:relative;
+    padding: 1rem;
   }
 
   .decorative-circle {
@@ -44,8 +46,26 @@
   .gradient-text { background: linear-gradient(135deg, #6c63ff 0%, #ff7f50 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
   .glass-effect { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border: 1px solid rgba(200,200,200,0.3); }
+/* Game Board */
+#board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem; /* adjusts automatically for small screens */
+  width: 90vw;
+  max-width: 300px;
+  margin: 0 auto;
+}
 
-  #board button { transition: all 0.3s ease; border-radius: 1rem; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+#board button {
+  width: 100%;
+  aspect-ratio: 1 / 1;   /* ensures perfect squares */
+  font-size: clamp(1.5rem, 6vw, 2.5rem);
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
   #board button:hover { cursor:pointer; }
 
   /* Score Display */
@@ -53,22 +73,20 @@
     display:flex;
     justify-content:space-between;
     width:100%;
-    max-width:600px;
-    margin-top:1.5rem;
-    padding:0 1rem;
+    max-width:400px;
+    margin-top:1rem;
+    gap: 1rem;
     z-index:10;
-    margin-top: -80px;
-    height: 80px;
+    height: auto;
   }
 
   .score-card {
+    flex: 1;
     background:#ffffff;
     border-radius:1rem;
-    /* padding:1rem 1.5rem; */
-    margin-top: 18px;
+    padding:0.8rem;
     box-shadow:0 5px 15px rgba(0,0,0,0.05);
     text-align:center;
-    min-width:120px;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
   }
 
@@ -78,8 +96,8 @@
     transform: scale(1.05);
   }
 
-  .score-name { font-weight:600; font-size:1rem; color:#4b5563; }
-  .score-value { font-weight:700; font-size:1.5rem; color:#6c63ff; }
+  .score-name { font-weight:600; font-size:clamp(0.8rem, 3vw, 1rem); color:#4b5563; }
+  .score-value { font-weight:700; font-size:clamp(1.2rem, 5vw, 1.5rem); color:#6c63ff; }
 
   /* Modals */
   .modal-backdrop { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
@@ -91,6 +109,8 @@
   }
   #namesForm button:hover { opacity:0.9; }
 </style>
+
+
 </head>
 <body>
 
